@@ -1,42 +1,46 @@
 import setup
+from tabulate import tabulate
 
 query = setup.get_ff_query()
 
 week = 4
-matches = query.get_league_matchups_by_week(week)
+teams = query.get_league_teams()
 
 game_info=query.get_current_game_info()
 int_stat_ids = list()
 fum_rec_stat_ids = list()
-fourth_down_stops_stat_ids = list()
 for stat in game_info.stat_categories.stats:
-    if stat.name.__contains__("Interception"):
+    if "Interception" in stat.name:
         int_stat_ids.append(stat.stat_id)
-    elif stat.name.__contains__("Fumble Recovery"):
+    elif stat.name == "Fumble Recovery":
         fum_rec_stat_ids.append(stat.stat_id)
-    elif stat.name.__contains__("4th Down Stops"):
-        fourth_down_stops_stat_ids.append(stat.stat_id)
 
-def get_turnovers_for_team(team_stats):
+def get_turnovers_for_team(team_player_stats):
     team_int = 0
     team_fum_rec = 0
-    team_fourth_down_stops = 0
-    for player in team_stats:
+    for player in team_player_stats:
         if player.selected_position_value == "DEF":
             for stat in player.player_stats.stats:
                 if stat.stat_id in int_stat_ids:
                     team_int += stat.value
                 if stat.stat_id in fum_rec_stat_ids:
                     team_fum_rec += stat.value
-                if stat.stat_id in fourth_down_stops_stat_ids:
-                    team_fourth_down_stops += stat.value
-    return team_int, team_fum_rec, team_fourth_down_stops
+    return team_int, team_fum_rec
 
-print("Team Name,Interceptions,Fumble Recoveries,Fourth Down Stops")
-for match in matches:
-    team_1_stats = query.get_team_roster_player_stats_by_week(match.teams[0].team_id, week)
-    team_1_int, team_1_fum_rec, team_1_fourth_down_stops = get_turnovers_for_team(team_1_stats)
-    team_2_stats = query.get_team_roster_player_stats_by_week(match.teams[1].team_id, week)
-    team_2_int, team_2_fum_rec, team_2_fourth_down_stops  = get_turnovers_for_team(team_2_stats)
-    print(f"{str(match.teams[0].name)},{team_1_int},{team_1_fum_rec},{team_1_fourth_down_stops}")
-    print(f"{str(match.teams[1].name)},{team_2_int},{team_2_fum_rec},{team_2_fourth_down_stops}")
+output = list()
+winner = ""
+winner_total = 0
+winner_overall = 0
+for team in teams:
+    team_player_stats = query.get_team_roster_player_stats_by_week(team.team_id, week)
+    team_stats = query.get_team_stats_by_week(team.team_id, week)
+    team_int, team_fum_rec = get_turnovers_for_team(team_player_stats)
+    total = team_int + team_fum_rec
+    if total > winner_total or (total == winner_total and team_stats["team_points"].total > winner_overall):
+        winner = team.name
+        winner_total = total
+        winner_overall = team_stats["team_points"].total
+    output.append([team.name.decode(), team_int, team_fum_rec, total])
+
+print(tabulate(output, headers=['Team Name','Interceptions','Fumble Recoveries','Total Turnovers'], tablefmt='orgtbl'))
+print(f"\nWinner!: {winner.decode()}")

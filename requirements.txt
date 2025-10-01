@@ -1,1 +1,2 @@
+tabulate
 yfpy~=17.0.0
