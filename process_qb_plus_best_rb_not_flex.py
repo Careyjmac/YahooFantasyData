@@ -32,6 +32,7 @@ for team in teams:
         winner_overall = team_stats["team_points"].total
     output.append([team.name.decode(), team_qb_points, team_rb_points, total, team_stats["team_points"].total])
 
+output.sort(key=lambda x: x[3], reverse=True)
 print(f"\nCalculating winner for week {week}, QB MP + Single RB MP (not including flex)...\n")
 print(tabulate(output, headers=['Team Name','QB Points','Best RB Points','Total','Total Overall (Tiebreaker)'], tablefmt='orgtbl'))
 print(f"\nWinner!: {winner.decode()}")
